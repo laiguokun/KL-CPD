@@ -39,15 +39,9 @@ class Model(nn.Module):
     # h_t:      1 x batch_size x RNN_hid_dim
     # y_t:      batch_size x var_dim
     def forward(self, X_p):
-        #batch_size = X_p.size(0)
         X_p_enc, h_t = self.rnn_layer(X_p)
-        #X_p_enc = X_p_enc.contiguous().view(batch_size, -1)
         h_t = h_t.squeeze(0)
         y_t = self.fc_layer(h_t)
-        #h_avg = X_p_enc.mean(1)
-        #y_t = self.fc_layer(h_avg)
-        #y_t = self.fc_layer(X_p_enc)
-        #y_t = self.AR(X_p.view(batch_size, -1))
 
         return y_t
 
@@ -84,15 +78,13 @@ def valid_epoch(loader, data, model, batch_size, Y_true, L_true):
 # ========= Setup input argument =========#
 parser = argparse.ArgumentParser(description='PyTorch Time series forecasting')
 parser.add_argument('--data_path', type=str, required=True, help='path to data in matlab format')
-parser.add_argument('--trn_ratio', type=float, default=0.6,help='how much data used for training')
+parser.add_argument('--trn_ratio', type=float, default=0.7,help='how much data used for training')
 parser.add_argument('--val_ratio', type=float, default=0.8,help='how much data used for validation')
 parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
 parser.add_argument('--cuda', type=str, default=True, help='use gpu or not')
 parser.add_argument('--random_seed', type=int, default=1126,help='random seed')
-
 parser.add_argument('--wnd_dim', type=int, required=True, default=10, help='window size (past and future)')
 parser.add_argument('--sub_dim', type=int, default=1, help='dimension of subspace embedding')
-
 # RNN hyperparemters
 parser.add_argument('--model', type=str, default='RNN', help='RNN|LSTNet')
 parser.add_argument('--CNN_hid_dim', type=int, default=10, help='number of CNN hidden units')
@@ -102,32 +94,22 @@ parser.add_argument('--highway_dim', type=int, default=10, help='The window size
 parser.add_argument('--RNN_skp_len', type=int, default=10, help='skip-length of RNN-skip layer in LSTNet')
 parser.add_argument('--RNN_skp_dim', type=int, default=5, help='hidden units nubmer of RNN-skip layer')
 parser.add_argument('--output_func', type=str, default=None, help='None|sigmoid|tanh for activation in last layer output')
-parser.add_argument('--dropout', type=float, default=0.2, help='dropout applied to layers (0 = no dropout)')
-
+parser.add_argument('--dropout', type=float, default=0., help='dropout applied to layers (0 = no dropout)')
 # optimization
 parser.add_argument('--batch_size', type=int, default=128, help='batch size for training')
 parser.add_argument('--max_iter', type=int, default=100, help='max iteration for training')
 parser.add_argument('--loss', type=str, default='L2', help='L1|L2|Huber for loss function')
 parser.add_argument('--optim', type=str, default='adam', help='sgd|rmsprop|adam for optimization method')
-parser.add_argument('--lr', type=float, default=3e-4, help='learning rate')
+parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 parser.add_argument('--weight_decay', type=float, default=0., help='weight decay (L2 regularization)')
 parser.add_argument('--momentum', type=float, default=0.0, help='momentum for sgd')
 parser.add_argument('--grad_clip', type=float, default=10.0, help='gradient clipping for RNN (both netG and netD)')
 parser.add_argument('--eval_freq', type=int, default=25, help='evaluation frequency per generator update')
 
-# save models
-parser.add_argument('--save_path', type=str,  default='./exp_simulate/jumpingmean/save_RNN',help='path to save the final model')
-parser.add_argument('--save_name', type=str,  default='tmp',help='model/prediction names')
-
 args = parser.parse_args()
 print(args)
-assert(os.path.isdir(args.save_path))
+#assert(os.path.isdir(args.save_path))
 assert(args.sub_dim == 1)
-
-#XXX For Yahoo dataset, trn_ratio=0.50, val_ratio=0.75
-if 'yahoo' in args.data_path:
-    args.trn_ratio = 0.50
-    args.val_ratio = 0.75
 
 
 # ========= Setup GPU device and fix random seed=========#
@@ -228,10 +210,10 @@ try:
                     best_val_auc = val_dict['auc']
                     best_tst_auc = tst_dict['auc']
                     best_epoch = epoch
-                    save_pred_name = '%s/%s.pred.pkl' % (args.save_path, args.save_name)
-                    with open(save_pred_name, 'wb') as f:
-                        pickle.dump(tst_dict, f)
-                    torch.save(model.state_dict(), '%s/%s.model.pkl' % (args.save_path, args.save_name))
+                    #save_pred_name = '%s/%s.pred.pkl' % (args.save_path, args.save_name)
+                    #with open(save_pred_name, 'wb') as f:
+                    #    pickle.dump(tst_dict, f)
+                    #torch.save(model.state_dict(), '%s/%s.model.pkl' % (args.save_path, args.save_name))
                 print(" [best_val_auc %.6f best_tst_auc %.6f best_epoch %3d]" % (best_val_auc, best_tst_auc, best_epoch))
 
 except KeyboardInterrupt:

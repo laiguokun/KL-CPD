@@ -25,13 +25,28 @@ class DataLoader(object):
 
         # split data into trn/val/tst set
         self.split_data()
-
+    
+    def diff(self, l_data):
+        L = np.zeros((l_data.shape[0],1))
+        for i in range(1, l_data.shape[0]):
+            if (l_data[i] != l_data[i-1]):
+                L[i] = 1;
+        return L;
+    
     # load data
     def load_data(self, trn_ratio=0.6, val_ratio=0.8):
         assert(os.path.lexists(self.data_path))
-        dataset = sio.loadmat(self.data_path)
-        self.Y = dataset['Y']                                   # Y: time series data, time length x number of variables
-        self.L = dataset['L']                                   # L: label of anomaly, time length x 1
+        x_file = self.data_path;
+        y_file = x_file;
+        y_file = list(y_file)
+        y_file[9] = 'y';
+        y_file = ''.join(y_file);
+        self.Y = np.load(x_file).transpose(); # Y: time series data, time length x number of variables
+        Y_mean = np.mean(self.Y);
+        Y_std = np.std(self.Y);
+        self.Y = (self.Y - Y_mean)/Y_std;
+        l_data = np.load(y_file);                               # L: label of anomaly, time length x 1
+        self.L = self.diff(l_data);
         self.T, self.D = self.Y.shape                           # T: time length; D: variable dimension
         self.n_trn = int(np.ceil(self.T * trn_ratio))           # n_trn: first index of val set
         self.n_val = int(np.ceil(self.T * val_ratio))           # n_val: first index of tst set
@@ -81,7 +96,7 @@ class DataLoader(object):
             X_p[i, :, :] = torch.from_numpy(data[l:m, :])
             X_f[i, :, :] = torch.from_numpy(data[m:u, :])
             Y[i, :] = torch.from_numpy(self.Y[m, :])
-            L[i] = torch.from_numpy(self.L[m])
+            L[i] = torch.from_numpy(self.L[m]);
         return {'X_p': X_p, 'X_f': X_f, 'Y': Y, 'L': L}
 
     def get_batches(self, data_set, batch_size, shuffle=False):
